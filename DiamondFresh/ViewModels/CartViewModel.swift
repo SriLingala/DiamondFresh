@@ -7,11 +7,7 @@ class CartViewModel: ObservableObject {
         cartItems.append(product)
     }
 
-    func removeFromCart(product: Product) {
-        cartItems.removeAll { $0.id == product.id }
-    }
-
-    func calculateTotal() -> Double {
-        return cartItems.reduce(0) { $0 + $1.price }
+    func clearCart() {
+        cartItems.removeAll()
     }
 }

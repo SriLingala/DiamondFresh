@@ -1,30 +1,40 @@
 import SwiftUI
 
 struct ProductListView: View {
-    @StateObject var productViewModel = ProductViewModel()
-    @StateObject var cartViewModel = CartViewModel()
+    @ObservedObject var productViewModel = ProductViewModel()
+    @EnvironmentObject var cartViewModel: CartViewModel
 
     var body: some View {
         NavigationView {
-            List(productViewModel.products) { product in
-                NavigationLink(destination: ProductDetailView(product: product, cartViewModel: cartViewModel)) {
+            VStack {
+                Text("Available Products")
+                    .font(.largeTitle)
+                    .padding()
+
+                List(productViewModel.products, id: \.id) { product in
                     HStack {
-                        if let imageName = product.imageName {
-                            Image(imageName)
-                                .resizable()
-                                .frame(width: 50, height: 50)
-                                .cornerRadius(8)
-                        }
-                        VStack(alignment: .leading) {
-                            Text(product.name)
-                                .font(.headline)
-                            Text("£\(String(format: "%.2f", product.price)) per \(product.quantityType)")
-                                .font(.subheadline)
+                        Text(product.name)
+                        Spacer()
+                        Text("£\(product.price, specifier: "%.2f")")
+                        Button(action: {
+                            cartViewModel.addToCart(product: product)
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.green)
                         }
                     }
                 }
+
+                NavigationLink(destination: CartView().environmentObject(cartViewModel)) {
+                    Text("Go to Cart (\(cartViewModel.cartItems.count))")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding()
             }
-            .navigationTitle("Diamond Fresh Mart")
         }
     }
 }

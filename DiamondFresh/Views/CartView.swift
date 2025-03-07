@@ -1,30 +1,68 @@
 import SwiftUI
 
 struct CartView: View {
-    @ObservedObject var cartViewModel: CartViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var cartViewModel: CartViewModel
+    @ObservedObject var orderService = OrderService()
+    @State private var showOrderConfirmation = false
+    @State private var errorMessage: String?
 
     var body: some View {
         VStack {
-            List(cartViewModel.cartItems) { product in
-                HStack {
-                    Text(product.name)
-                    Spacer()
-                    Text("£\(String(format: "%.2f", product.price))")
-                }
-            }
-            Text("Total: £\(String(format: "%.2f", cartViewModel.calculateTotal()))")
-                .font(.title)
+            Text("Your Cart")
+                .font(.largeTitle)
                 .padding()
 
-            Button("Checkout") {
-                // Implement Checkout functionality
+            List(cartViewModel.cartItems, id: \.id) { product in
+                Text("\(product.name) - £\(product.price, specifier: "%.2f")")
+            }
+
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .padding()
+            }
+
+            Button(action: {
+                if cartViewModel.cartItems.isEmpty {
+                    errorMessage = "❌ Your cart is empty! Add items before checking out."
+                    return
+                }
+
+                guard let user = authViewModel.user else {
+                    errorMessage = "❌ You must be logged in to place an order."
+                    return
+                }
+
+                let customerName = user.name.isEmpty ? "Unknown Customer" : user.name
+                let customerEmail = user.email  
+
+                let order = orderService.processOrder(cartItems: cartViewModel.cartItems, customerName: customerName, customerEmail: customerEmail)
+
+                if let order = order {
+                    print("✅ Order Created: \(order)")
+                    showOrderConfirmation = true
+                    cartViewModel.clearCart()
+                } else {
+                    errorMessage = "❌ Failed to create order. Please try again."
+                }
+            }) {
+                Text("Checkout")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
             .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+            .alert(isPresented: $showOrderConfirmation) {
+                Alert(
+                    title: Text("Order Confirmed"),
+                    message: Text("Your order has been placed successfully."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
         }
-        .navigationTitle("Cart")
+        .padding()
     }
 }
